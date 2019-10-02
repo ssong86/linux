@@ -7378,7 +7378,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	switch (nr) {
 		//inserted by Sangwon Song
 	case 0x283: //
-		ret = 0x0033383245504D43 // CMPE283
+		ret = 0x0033383245504D43; // CMPE283
 		break;
 	///
 	case KVM_HC_VAPIC_POLL_IRQ:
