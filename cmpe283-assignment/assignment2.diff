@@ -1,0 +1,91 @@
+diff --git a/arch/x86/kvm/cpuid.c b/arch/x86/kvm/cpuid.c
+index 63316036f85a..77b87aa38f0c 100644
+--- a/arch/x86/kvm/cpuid.c
++++ b/arch/x86/kvm/cpuid.c
+@@ -1018,17 +1018,34 @@ bool kvm_cpuid(struct kvm_vcpu *vcpu, u32 *eax, u32 *ebx,
+ 	return entry_found;
+ }
+ EXPORT_SYMBOL_GPL(kvm_cpuid);
++//My Code/////////////
++u32 total_exit=0;
++u64 total_cycle=0;
++/////////////////////
+ 
+ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
+ {
+-	u32 eax, ebx, ecx, edx;
++	u32 eax, ebx, ecx, edx;	
+ 
+ 	if (cpuid_fault_enabled(vcpu) && !kvm_require_cpl(vcpu, 0))
+ 		return 1;
+ 
+ 	eax = kvm_rax_read(vcpu);
+ 	ecx = kvm_rcx_read(vcpu);
+-	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
++	//kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
++	// My Code ////////////////////////////////////////////////
++	if(eax==0x4fffffff){
++		eax=total_exit;
++	}
++	else if(eax==0x4ffffffe){
++		ebx = total_cycle >> 32;
++		ecx = total_cycle;
++	}
++	else{
++		kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
++	}
++	///////////////////////////////////////////////////////////
++	
+ 	kvm_rax_write(vcpu, eax);
+ 	kvm_rbx_write(vcpu, ebx);
+ 	kvm_rcx_write(vcpu, ecx);
+@@ -1036,3 +1053,7 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
+ 	return kvm_skip_emulated_instruction(vcpu);
+ }
+ EXPORT_SYMBOL_GPL(kvm_emulate_cpuid);
++//My Code/////////////////////
++EXPORT_SYMBOL_GPL(total_exit);
++EXPORT_SYMBOL_GPL(total_cycle);
++//////////////////////////////
+diff --git a/arch/x86/kvm/vmx/vmx.c b/arch/x86/kvm/vmx/vmx.c
+index d4575ffb3cec..b0006bbc1b83 100644
+--- a/arch/x86/kvm/vmx/vmx.c
++++ b/arch/x86/kvm/vmx/vmx.c
+@@ -5853,6 +5853,12 @@ void dump_vmcs(void)
+  * The guest has exited.  See if we can fix it or if we need userspace
+  * assistance.
+  */
++
++//My Code ////////////////////////
++extern u32 total_exit;
++extern u64 total_cycle;
++//////////////////////////////////
++
+ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
+ {
+ 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+@@ -5940,8 +5946,22 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
+ 	}
+ 
+ 	if (exit_reason < kvm_vmx_max_exit_handlers
+-	    && kvm_vmx_exit_handlers[exit_reason])
+-		return kvm_vmx_exit_handlers[exit_reason](vcpu);
++	    && kvm_vmx_exit_handlers[exit_reason]){
++		//return kvm_vmx_exit_handlers[exit_reason](vcpu);
++		// My Code//////////////
++		int return_value;
++		u64 exit_cycle_start;
++		u64 exit_cycle_end;
++		
++		total_exit += (u32)1;
++		exit_cycle_start = rdtsc();
++		return_value = kvm_vmx_exit_handlers[exit_reason](vcpu);
++		exit_cycle_end = rdtsc();
++		total_cycle += exit_cycle_end - exit_cycle_start;
++
++		return return_value;
++		////////////////////////
++	}
+ 	else {
+ 		vcpu_unimpl(vcpu, "vmx: unexpected exit reason 0x%x\n",
+ 				exit_reason);

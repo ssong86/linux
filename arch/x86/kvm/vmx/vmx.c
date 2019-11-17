@@ -5853,6 +5853,12 @@ void dump_vmcs(void)
  * The guest has exited.  See if we can fix it or if we need userspace
  * assistance.
  */
+
+//My Code ////////////////////////
+extern u32 total_exit;
+extern u64 total_cycle;
+//////////////////////////////////
+
 static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
@@ -5940,8 +5946,22 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 	}
 
 	if (exit_reason < kvm_vmx_max_exit_handlers
-	    && kvm_vmx_exit_handlers[exit_reason])
-		return kvm_vmx_exit_handlers[exit_reason](vcpu);
+	    && kvm_vmx_exit_handlers[exit_reason]){
+		//return kvm_vmx_exit_handlers[exit_reason](vcpu);
+		// My Code//////////////
+		int return_value;
+		u64 exit_cycle_start;
+		u64 exit_cycle_end;
+		
+		total_exit += (u32)1;
+		exit_cycle_start = rdtsc();
+		return_value = kvm_vmx_exit_handlers[exit_reason](vcpu);
+		exit_cycle_end = rdtsc();
+		total_cycle += exit_cycle_end - exit_cycle_start;
+
+		return return_value;
+		////////////////////////
+	}
 	else {
 		vcpu_unimpl(vcpu, "vmx: unexpected exit reason 0x%x\n",
 				exit_reason);

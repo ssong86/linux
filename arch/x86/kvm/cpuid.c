@@ -1018,17 +1018,34 @@ out:
 	return entry_found;
 }
 EXPORT_SYMBOL_GPL(kvm_cpuid);
+//My Code/////////////
+u32 total_exit=0;
+u64 total_cycle=0;
+/////////////////////
 
 int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 {
-	u32 eax, ebx, ecx, edx;
+	u32 eax, ebx, ecx, edx;	
 
 	if (cpuid_fault_enabled(vcpu) && !kvm_require_cpl(vcpu, 0))
 		return 1;
 
 	eax = kvm_rax_read(vcpu);
 	ecx = kvm_rcx_read(vcpu);
-	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+	//kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+	// My Code ////////////////////////////////////////////////
+	if(eax==0x4fffffff){
+		eax=total_exit;
+	}
+	else if(eax==0x4ffffffe){
+		ebx = total_cycle >> 32;
+		ecx = total_cycle;
+	}
+	else{
+		kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+	}
+	///////////////////////////////////////////////////////////
+	
 	kvm_rax_write(vcpu, eax);
 	kvm_rbx_write(vcpu, ebx);
 	kvm_rcx_write(vcpu, ecx);
@@ -1036,3 +1053,7 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 	return kvm_skip_emulated_instruction(vcpu);
 }
 EXPORT_SYMBOL_GPL(kvm_emulate_cpuid);
+//My Code/////////////////////
+EXPORT_SYMBOL_GPL(total_exit);
+EXPORT_SYMBOL_GPL(total_cycle);
+//////////////////////////////
