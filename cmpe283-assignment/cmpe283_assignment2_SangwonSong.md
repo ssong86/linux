@@ -9,7 +9,7 @@ This part is skipped. I did the assginment by myself
 	**Note:** I may decide to follow these instructions for random assignments, so you should make sure they are accurate. <br>
 	
 * Pre-condition: We need to use the Assignment 1 environment. I have the information about Assignment 1 in my linux github repository.	
-* Check the version of the linux kenel by `uname -r` command. It should be the same as Assignment 1.
+* Check the version of the linux kernel by `uname -r` command. It should be the same as Assignment 1.
 	* In my case, it was `5.4.0-rc+1`. 	
 * Modify the code in `cpuid.c` and `vmx.c` in the linux repository.
 	* Detailed modification is described in the git diff file in my github.
