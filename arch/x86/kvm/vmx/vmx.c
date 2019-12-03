@@ -61,6 +61,11 @@
 #include "vmx.h"
 #include "x86.h"
 
+// My Code ///////////////
+#include <linux/atomic.h>
+#include <stdatomic.h>
+/////////////////////////
+
 MODULE_AUTHOR("Qumranet");
 MODULE_LICENSE("GPL");
 
@@ -5855,8 +5860,14 @@ void dump_vmcs(void)
  */
 
 //My Code ////////////////////////
-extern u32 total_exit;
-extern u64 total_cycle;
+//extern _Atomic u32 total_exit;
+//extern _Atomic u64 total_cycle;
+//extern _Atomic u32 exit_by_ecx[69];
+//extern _Atomic u64 time_by_ecx[69];
+extern atomic_t total_exit;
+extern atomic_long_t total_cycle;
+extern atomic_t exit_by_ecx[69];
+extern atomic_long_t time_by_ecx[69];
 //////////////////////////////////
 
 static int vmx_handle_exit(struct kvm_vcpu *vcpu)
@@ -5953,11 +5964,19 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 		u64 exit_cycle_start;
 		u64 exit_cycle_end;
 		
-		total_exit += (u32)1;
+		//total_exit += (u32)1;
+		atomic_inc(&total_exit); // total_exit++
+		//exit_by_ecx[exit_reason] += (u32)1;
+		atomic_inc(&exit_by_ecx[exit_reason]);// exit_by_ecx[exit_reason]++
+
 		exit_cycle_start = rdtsc();
 		return_value = kvm_vmx_exit_handlers[exit_reason](vcpu);
 		exit_cycle_end = rdtsc();
-		total_cycle += exit_cycle_end - exit_cycle_start;
+
+		//total_cycle += (exit_cycle_end - exit_cycle_start);
+		atomic_long_add((exit_cycle_end - exit_cycle_start), &total_cycle);
+		//time_by_ecx[exit_reason] += (exit_cycle_end - exit_cycle_start);
+		atomic_long_add((exit_cycle_end - exit_cycle_start), &time_by_ecx[exit_reason]);
 
 		return return_value;
 		////////////////////////

@@ -14,7 +14,9 @@
 #include <linux/vmalloc.h>
 #include <linux/uaccess.h>
 #include <linux/sched/stat.h>
-
+//My Code: Include atomic header//
+#include <linux/atomic.h>
+/////////////////////////////////
 #include <asm/processor.h>
 #include <asm/user.h>
 #include <asm/fpu/xstate.h>
@@ -1019,9 +1021,93 @@ out:
 }
 EXPORT_SYMBOL_GPL(kvm_cpuid);
 //My Code/////////////
-u32 total_exit=0;
-u64 total_cycle=0;
-/////////////////////
+//u32 total_exit=0;
+atomic_t total_exit = ATOMIC_INIT(0);
+//u64 total_cycle=0;
+atomic_long_t total_cycle = ATOMIC_INIT(0);
+//u32 exit_by_ecx[69]={0};
+atomic_t exit_by_ecx[69] = ATOMIC_INIT(0);
+//u64 time_by_ecx[69]={0};
+atomic_long_t time_by_ecx[69] = ATOMIC_INIT(0);
+///////////////////////
+//My Code//////////////
+/* Total number of exits : 69 (0 to 68)
+ * Exits not enabled in SDM : 35, 38, 42, 65 -> return 0 all in eax, ebx, ecx, 0xFFFFFFF in edx
+ * Exits not enabled in KVM : 4,5,6,11,17,35,38,42,65,66 -> return 0 all in registers
+ */ 
+bool exit_reasons_KVM[]={
+	[0] = true,
+	[1] = true, 
+	[2] = true,
+	[3] = true,
+	[4] = false, //
+	[5] = false, //
+	[6] = false, //
+	[7] = true,
+	[8] = true,
+	[9] = true,
+	[10] = true,
+	[11] = false, //
+	[12] = true,
+	[13] = true,
+	[14] = true,
+	[15] = true,
+	[16] = true,
+	[17] = false, //
+	[18] = true,
+	[19] = true,
+	[20] = true,
+	[21] = true,
+	[22] = true,
+	[23] = true,
+	[24] = true,
+	[25] = true,
+	[26] = true,
+	[27] = true,
+	[28] = true,
+	[29] = true,
+	[30] = true,
+	[31] = true,
+	[32] = true,
+	[33] = true,
+	[34] = true,
+	[35] = false, //
+	[36] = true,
+	[37] = true,
+	[38] = false,
+	[39] = true,
+	[40] = true,
+	[41] = true,
+	[42] = false, //
+	[43] = true,
+	[44] = true,
+	[45] = true,
+	[46] = true,
+	[47] = true,
+	[48] = true,
+	[49] = true,
+	[50] = true,
+	[51] = true,
+	[52] = true,
+	[53] = true,
+	[54] = true,
+	[55] = true,
+	[56] = true,
+	[57] = true,
+	[58] = true,
+	[59] = true,
+	[60] = true,
+	[61] = true,
+	[62] = true,
+	[63] = true,
+	[64] = true,
+	[65] = false, //
+	[66] = false, //
+	[67] = true,
+	[68] = true,
+	
+};
+///////////////////////
 
 int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 {
@@ -1035,11 +1121,66 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 	//kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
 	// My Code ////////////////////////////////////////////////
 	if(eax==0x4fffffff){
-		eax=total_exit;
+		//eax = total_exit;
+		eax = atomic_read(&total_exit);
+		ebx = 0;
+		ecx = 0;
+		edx = 0;
 	}
 	else if(eax==0x4ffffffe){
-		ebx = total_cycle >> 32;
-		ecx = total_cycle;
+		//ebx = total_cycle >> 32;
+		//ecx = total_cycle;
+		ebx = atomic_long_read(&total_cycle) >> 32;
+		ecx = atomic_long_read(&total_cycle);
+		eax = 0;
+		edx = 0;
+	}
+	else if(eax==0x4ffffffd){
+		if(ecx < 69 && exit_reasons_KVM[ecx]){
+			//true condition
+			eax = atomic_read(&exit_by_ecx[ecx]);
+			ebx = 0;
+			ecx = 0;
+			edx = 0;
+		}
+		else{
+			if (ecx < 69 && ecx != 35 && ecx != 38 && ecx != 42 && ecx != 65){
+				edx = 0;
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+			}
+			else{
+				edx = 0xFFFFFFFF;
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+			}
+		}
+	}
+	else if(eax==0x4ffffffc){
+		if(ecx < 69 && exit_reasons_KVM[ecx]){
+			//true condition
+			ebx = atomic_long_read(&time_by_ecx[ecx])>>32;
+			ecx = atomic_long_read(&time_by_ecx[ecx]);
+			eax = 0;
+			edx = 0;
+		}
+		else{
+			if (ecx < 69 && ecx != 35 && ecx != 38 && ecx != 42 && ecx != 65){
+				edx = 0;
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+			}
+			else{
+				edx = 0xFFFFFFFF;
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+			}
+		}
+
 	}
 	else{
 		kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
@@ -1054,6 +1195,8 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 }
 EXPORT_SYMBOL_GPL(kvm_emulate_cpuid);
 //My Code/////////////////////
-EXPORT_SYMBOL_GPL(total_exit);
-EXPORT_SYMBOL_GPL(total_cycle);
+EXPORT_SYMBOL(total_exit);
+EXPORT_SYMBOL(total_cycle);
+EXPORT_SYMBOL(exit_by_ecx);
+EXPORT_SYMBOL(time_by_ecx);
 //////////////////////////////
