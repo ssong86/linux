@@ -63,7 +63,6 @@
 
 // My Code ///////////////
 #include <linux/atomic.h>
-#include <stdatomic.h>
 /////////////////////////
 
 MODULE_AUTHOR("Qumranet");
@@ -5860,10 +5859,10 @@ void dump_vmcs(void)
  */
 
 //My Code ////////////////////////
-//extern _Atomic u32 total_exit;
-//extern _Atomic u64 total_cycle;
-//extern _Atomic u32 exit_by_ecx[69];
-//extern _Atomic u64 time_by_ecx[69];
+//extern u32 total_exit;
+//extern u64 total_cycle;
+//extern u32 exit_by_ecx[69];
+//extern u64 time_by_ecx[69];
 extern atomic_t total_exit;
 extern atomic_long_t total_cycle;
 extern atomic_t exit_by_ecx[69];
