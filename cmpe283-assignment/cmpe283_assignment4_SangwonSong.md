@@ -3,7 +3,7 @@
 
 **Q1.** For each member in your team, provide 1 paragraph detailing what parts of the lab that member implemented / researched. (You may skip this question if you are doing the lab by yourself).
 
-This part is skipped. I did the assginment by myself
+This part is skipped. I did the assginment by myself.
 
 **Q2.** Include a sample of your print of exit ount output from dmesg from "with ept" and "without ept"
 
